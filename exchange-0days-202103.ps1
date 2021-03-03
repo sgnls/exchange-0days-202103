@@ -36,17 +36,17 @@ else{
 
 if($cve26858){
 	"# CVE-2021-26858 Artifacts"
-		$cve26858
+	$cve26858
 }
 if($cve26857){
 	"# CVE-2021-26857 Artifacts"
-		$cve26857
+	$cve26857
 }
 if($cve27065){
 	"# CVE-2021-27065 Artifacts"
-		$cve27065
+	$cve27065
 }
 if($cve26855){
 	"# CVE-2021-26855 Artifacts"
-		$cve26855
+	$cve26855
 }
