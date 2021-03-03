@@ -27,7 +27,10 @@ else{
 
 $cve26855 = new-object collections.generic.list[object]
 write-host -no "$env:computername | Checking IoCs for CVE-2021-26855... "
-if($(import-csv -path (gci -recurse -path "$env:PROGRAMFILES\Microsoft\Exchange Server\V15\Logging\HttpProxy" -filter ‘*.log’).fullname | ? { $_.AnchorMailbox -like ‘ServerInfo~*/*’ } | % {$cve26855.add("$(($_).datetime)|$(($_).anchormailbox)|$(($_).urlstem)|$(($_).clientipaddress)|$(($_).requestbytes)|$(($_).responsebytes)")})){
+import-csv -path (gci -recurse -path "$env:PROGRAMFILES\Microsoft\Exchange Server\V15\Logging\HttpProxy" -filter ‘*.log’).fullname | ? { $_.AnchorMailbox -like ‘ServerInfo~*/*’ } | % {
+    $cve26855.add("$(($_).datetime)|$(($_).anchormailbox)|$(($_).urlstem)|$(($_).clientipaddress)|$(($_).requestbytes)|$(($_).responsebytes)")
+}
+if(($cve26855).count -gt 0){
     "Leveraged";
 }
 else{
@@ -35,18 +38,18 @@ else{
 } 
 
 if($cve26858){
-	"# CVE-2021-26858 Artifacts"
+	"# CVE-2021-26858 Artefacts"
 	$cve26858
 }
 if($cve26857){
-	"# CVE-2021-26857 Artifacts"
+	"# CVE-2021-26857 Artefacts"
 	$cve26857
 }
 if($cve27065){
-	"# CVE-2021-27065 Artifacts"
+	"# CVE-2021-27065 Artefacts"
 	$cve27065
 }
 if($cve26855){
-	"# CVE-2021-26855 Artifacts"
+	"# CVE-2021-26855 Artefacts"
 	$cve26855
 }
