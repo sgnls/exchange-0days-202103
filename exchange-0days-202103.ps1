@@ -47,19 +47,19 @@ else{
     "Not Leveraged";
 } 
 
-if($cve26858){
+if(($cve26858).count -gt 0){
 	"# CVE-2021-26858 Artefacts"
 	$cve26858
 }
-if($cve26857){
+if(($cve26857).count -gt 0){
 	"# CVE-2021-26857 Artefacts"
 	$cve26857
 }
-if($cve27065){
+if(($cve27065).count -gt 0){
 	"# CVE-2021-27065 Artefacts"
 	$cve27065
 }
-if($cve26855){
+if(($cve26855).count -gt 0){
 	"# CVE-2021-26855 Artefacts"
 	$cve26855
 }
