@@ -1,24 +1,34 @@
+
+$cve26858 = new-object collections.generic.list[object]
 write-host -no "$env:computername | Checking IoCs for CVE-2021-26858... "
-if($(findstr /snip /c:”Download failed and temporary file” “%PROGRAMFILES%\Microsoft\Exchange Server\V15\Logging\OABGeneratorLog\*.log”)){
-    $cve26858="$_";
+findstr /snip /c:”Download failed and temporary file” “%PROGRAMFILES%\Microsoft\Exchange Server\V15\Logging\OABGeneratorLog\*.log” | % { 
+    $cve26858.add("$_")
+}
+if(($cve26858).count -gt 0){
     "Leveraged";
 }
 else{
     "Not Leveraged";
 }
 
+$cve26857 = new-object collections.generic.list[object]
 write-host -no "$env:computername | Checking IoCs for CVE-2021-26857... "
-if($(get-eventlog -logname Application -source “MSExchange Unified Messaging” -entrytype Error | ? { $_.message -like "*System.InvalidCastException*" }))
-    $cvecve26858="$_";
+get-eventlog -logname Application -source "MSExchange Unified Messaging" -entrytype Error | ? { $_.message -like "*System.InvalidCastException*" } | % {
+    $cve26857.add("$_")
+}
+if(($cve26857).count -gt 0){
     "Leveraged";
 }
 else{
     "Not Leveraged";
 }
 
+$cve27065 = new-object collections.generic.list[object]
 write-host -no "$env:computername | Checking IoCs for CVE-2021-27065... "
-select-string -path "$env:PROGRAMFILES\Microsoft\Exchange Server\V15\Logging\ECP\Server\*.log" -pattern ‘set-.+VirtualDirectory’ | % { if($_ -match "script"){$cve27065="$_"}}
-if($cve27065){
+select-string -path "$env:PROGRAMFILES\Microsoft\Exchange Server\V15\Logging\ECP\Server\*.log" -pattern ‘set-.+VirtualDirectory’ | % { if($_ -match "script"){$cve27065="$_"}} | % {
+    $cve27065.add("$_")
+}
+if(($cve27065).count -gt 0){
     "Leveraged";
 }
 else{
