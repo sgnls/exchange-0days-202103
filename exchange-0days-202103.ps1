@@ -19,7 +19,7 @@ function err_fnc{
 function enum_vers{
     
     "# Exchange Version"
-    $exc = @("language","speech","anti-spam","block",;"mcafee");
+    $exc = @("language","speech","anti-spam","block","mcafee");
     gci HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall | get-itemproperty | ? {$_.displayname -match "Exchange" -and $_.displayname -notmatch ($exc -join '|')} | % {
         "$env:computername | $(($_).displayname) | $(($_).displayversion)"
     }
@@ -83,7 +83,7 @@ function enum_leverage{
     $cve26855 = new-object collections.generic.list[object];
     write-host -no "`t$env:computername | Checking IoCs for CVE-2021-26855... ";
     try{
-        import-csv -path (gci -recurse -path "$env:PROGRAMFILES\Microsoft\Exchange Server\V15\Logging\HttpProxy" -filter ‘*.log’).fullname | ? { $_.anchormailbox -like ‘ServerInfo~*/*’ } | % {
+        import-csv -path (gci -recurse -path "$env:PROGRAMFILES\Microsoft\Exchange Server\V15\Logging\HttpProxy" -filter '*.log').fullname | ? { $_.anchormailbox -like 'ServerInfo~*/*' } | % {
             $cve26855.add("$(($_).datetime)|$(($_).anchormailbox)|$(($_).useragent)|$(($_).routinghint)|$(($_).urlstem)|$(($_).clientipaddress)|$(($_).requestbytes)|$(($_).responsebytes)");
         }
         if($(($cve26855).count) -gt 0){
