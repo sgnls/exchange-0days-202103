@@ -1,5 +1,5 @@
 ## Exchange 0-Day Evaluation
-# v4
+# v5
 
 $erroractionpreference = "silentlycontinue";
 $warningpreference = "silentlycontinue";
@@ -19,7 +19,7 @@ function err_fnc{
 function enum_vers{
     
     "# Exchange Version"
-    $exc = @("language","speech","anti-spam","block",;"mcafee");
+    $exc = @("language","speech","anti-spam","block","mcafee");
     gci HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall | get-itemproperty | ? {$_.displayname -match "Exchange" -and $_.displayname -notmatch ($exc -join '|')} | % {
         "$env:computername | $(($_).displayname) | $(($_).displayversion)"
     }
@@ -32,7 +32,7 @@ function enum_leverage{
     $cve26858 = new-object collections.generic.list[object];
     write-host -no "`t$env:computername | Checking IoCs for CVE-2021-26858... ";
     try{
-        findstr /snip /c:"Download failed and temporary file” “%PROGRAMFILES%\Microsoft\Exchange Server\V15\Logging\OABGeneratorLog\*.log" | % { 
+        findstr /snip /c:"Download failed and temporary file" "%PROGRAMFILES%\Microsoft\Exchange Server\V15\Logging\OABGeneratorLog\*.log" | % { 
             $cve26858.add("$_");
         }
         if($(($cve26858).count) -gt 0){
@@ -66,7 +66,7 @@ function enum_leverage{
     $cve27065 = new-object collections.generic.list[object];
     write-host -no "`t$env:computername | Checking IoCs for CVE-2021-27065... ";
     try{
-        select-string -path "$env:PROGRAMFILES\Microsoft\Exchange Server\V15\Logging\ECP\Server\*.log" -pattern ‘set-.+VirtualDirectory’ | % { if($_ -match "script"){$cve27065="$_"}} | % {
+        select-string -path "$env:PROGRAMFILES\Microsoft\Exchange Server\V15\Logging\ECP\Server\*.log" -pattern 'set-.+VirtualDirectory' | % { if($_ -match "script"){$cve27065="$_"}} | % {
             $cve27065.add("$_");
         }
         if($(($cve27065).count) -gt 0){
@@ -83,7 +83,7 @@ function enum_leverage{
     $cve26855 = new-object collections.generic.list[object];
     write-host -no "`t$env:computername | Checking IoCs for CVE-2021-26855... ";
     try{
-        import-csv -path (gci -recurse -path "$env:PROGRAMFILES\Microsoft\Exchange Server\V15\Logging\HttpProxy" -filter ‘*.log’).fullname | ? { $_.anchormailbox -like ‘ServerInfo~*/*’ } | % {
+        import-csv -path (gci -recurse -path "$env:PROGRAMFILES\Microsoft\Exchange Server\V15\Logging\HttpProxy" -filter '*.log').fullname | ? { $_.anchormailbox -like 'ServerInfo~*/*' } | % {
             $cve26855.add("$(($_).datetime)|$(($_).anchormailbox)|$(($_).useragent)|$(($_).routinghint)|$(($_).urlstem)|$(($_).clientipaddress)|$(($_).requestbytes)|$(($_).responsebytes)");
         }
         if($(($cve26855).count) -gt 0){
@@ -169,6 +169,135 @@ function enum_iocs{
     if($(($bdws_cab).count) -gt 0){
         "`n`t# Potential IoEs"
         $bdws_cab | % { "`t$_" }
+    }
+
+}
+
+function safety_scan{
+
+    $su = "https://definitionupdates.microsoft.com/download/DefinitionUpdates/VersionedSignatures/AM/1.333.116.0/amd64/";
+    $sb = "MSERT.exe";
+
+    sl $env:temp
+
+    write-host -no "Downloading Safety Scanner... "
+    try{
+        if($os -match "2008" -or $os -match "Windows 7"){
+            (new-object system.net.webclient).downloadfile($u,"$((gl).path)\$f")
+            "OK!"
+        }
+        else{
+            .{ iwr $u -outfile $f } | out-null
+            "OK!"
+        }
+    }
+    catch{
+        err_fnc
+    }
+    
+    write-host -no "Executing Safety Scanner... "
+    try{
+        cmd.exe /c $f /FQ
+        "OK!"
+    }
+    catch{
+        err_fnc
+    }
+
+    # # while process    
+    # write-host -no "Verifying results... "
+    # try{
+    #     gci c:\windows\debug | ? {$_.lastwritetime -match "2021"} | % {
+    #         # gc $(($_).fullname)
+    #     }
+    #     "OK!"
+    # }
+    # catch{
+    #     err_fnc
+    # }
+
+}
+
+function cleanse_aspx{
+
+    $aspx_paths = @("C:\inetpub\wwwroot\aspnet_client\");
+    $darc = "c:\windows\debug\exc0";
+
+    try{
+        new-item -itemtype directory $darc -force | out-null
+    }
+    catch{
+        "Cannot create directory ($darc)."
+    }
+    $aspx_paths | % {
+        gci $_ | ? { $((get-acl $(($_).fullname)).owner) -match "system" -and $_.lastwritetime -match "2021"} | % {
+            write-host -no "Moving $(($_).fullname) to $darc... "
+            try{
+                move-item "$(($_).fullname)" $darc | out-null
+                "OK!"
+            }
+            catch{
+                err_fnc
+            }
+        }
+    }
+
+}
+
+function enum_tasks{
+
+    # legacy; revamp
+    function subf{
+        [cmdletbinding()]
+        param(
+            $fref = $sch.getfolder("\")
+        )
+        if($fref.Path -eq '\'){
+            $fref
+        }
+        if(-not $root){
+            $afld = @()
+            if(($fld = $fref.getfolders(1))){
+                $fld | % {
+                    $afld += $_
+                    if($_.getfolders(1)) {
+                        subf -fref $_
+                    }
+                }
+            }
+            $afld
+        }
+    }
+    function trig{
+        [cmdletbinding()]
+        param(
+            $task
+        )
+        $trigs = ([xml]$task.xml).task.trigs
+        if($trigs){
+            $trigs | get-member -membertype property | % {
+                $trigs.($_.Name)
+            }
+        }
+    }
+
+    try{
+        $sch = new-object -comobject 'Schedule.Service'
+    }
+    catch{
+        return
+    }
+
+    $sch.connect($env:computername)
+    $afld = subf
+
+    foreach ($fld in $afld){
+        if(($tasks = $fld.GetTasks(1))){
+        #  server | author | userid | description | trigger | name | path | state | enabled | lastruntime | lasttaskresult | missedruns | nextruntime
+        $tasks | ? { $(([xml]$_.xml).task.registrationinfo.author) -ne $null -and $(([xml]$_.xml).task.registrationinfo.author) -notmatch "SystemRoot"} | % {
+            "Task^$srv^$(([xml]$_.xml).task.registrationinfo.author)^$(([xml]$_.xml).task.principals.principal.userid)^$(([xml]$_.xml).task.tegistrationinfo.description)^$($_.name)^$($_.path)^$($_.State)^$($_.enabled)^$($_.lastruntime)^$($_.lasttaskresult)^$($_.numberofmissedruns)^$($_.nextruntime)^$(trig -task $_)"
+            }
+        }
     }
 
 }
